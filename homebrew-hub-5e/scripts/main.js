@@ -391,7 +391,7 @@ class HHBrowserApp extends Application {
     const grid = html.find("#rrb-category-grid");
 
     const categories = [
-      { type: "pack",       label: "Packs",       icon: "&#9672;" },
+      { type: "pack",       label: "Bundles",      icon: "&#9672;" },
       { type: "weapon",     label: "Weapons",     icon: "&#9876;" },
       { type: "spell",      label: "Spells",      icon: "&#10022;" },
       { type: "monster",    label: "Monsters",    icon: "&#9760;" },
@@ -715,7 +715,7 @@ HHBrowserApp.prototype._renderPackList = function() {
   }
 
   if (!this._packs || !this._packs.length) {
-    list.html('<div class="rrb-status"><div class="rrb-status-icon">&#9672;</div><p>No packs found</p></div>');
+    list.html('<div class="rrb-status"><div class="rrb-status-icon">&#9672;</div><p>No bundles found</p></div>');
     return;
   }
 
@@ -733,7 +733,7 @@ HHBrowserApp.prototype._renderPackList = function() {
       + '<div class="rrb-item-info">'
       + '<div class="rrb-item-name">' + pack.name + '</div>'
       + '<div class="rrb-item-meta">'
-      + '<span class="rrb-badge" style="background:rgba(124,58,237,0.2);color:#c4b5fd;border:1px solid rgba(124,58,237,0.3);">pack</span>'
+      + '<span class="rrb-badge" style="background:rgba(124,58,237,0.2);color:#c4b5fd;border:1px solid rgba(124,58,237,0.3);">bundle</span>'
       + '<span class="rrb-badge rrb-badge-version">v' + pack.version + '</span>'
       + authorHtml + '</div>' + descHtml + '</div>'
       + '<div class="rrb-item-actions">'
@@ -759,10 +759,10 @@ HHBrowserApp.prototype._renderPackList = function() {
     try {
       await HHImporter.importPack(id);
       btn.text("Done!");
-      ui.notifications.info("Pack imported successfully.");
+      ui.notifications.info("Bundle imported successfully.");
     } catch (err) {
       btn.prop("disabled", false).text("Import");
-      ui.notifications.error("Pack import failed: " + err.message);
+      ui.notifications.error("Bundle import failed:" + err.message);
     }
   });
 };
@@ -772,7 +772,7 @@ HHBrowserApp.prototype._showPackPreview = async function(packId) {
   try {
     pack = await HHApi.getPack(packId);
   } catch (err) {
-    ui.notifications.error("Could not load pack details.");
+    ui.notifications.error("Could not load bundle details.");
     return;
   }
 
@@ -801,10 +801,10 @@ HHBrowserApp.prototype._showPackPreview = async function(packId) {
     }
     itemsHtml = '<div class="rrb-preview-stats">'
       + '<div style="font-family:Cinzel,serif;font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--rrb-accent-violet-light);margin-bottom:0.5rem;">'
-      + 'Pack Contents (' + items.length + ' items)</div>'
+      + 'Bundle Contents (' + items.length + ' items)</div>'
       + rows + '</div>';
   } else {
-    itemsHtml = '<p style="color:var(--rrb-text-muted);font-size:0.8rem;">No items in this pack yet.</p>';
+    itemsHtml = '<p style="color:var(--rrb-text-muted);font-size:0.8rem;">No items in this bundle yet.</p>';
   }
 
   const tagsHtml = pack.tags && pack.tags.length
@@ -820,12 +820,12 @@ HHBrowserApp.prototype._showPackPreview = async function(packId) {
     + '<div class="rrb-preview-header">'
     + '<h2 class="rrb-preview-name">' + pack.name + '</h2>'
     + '<div class="rrb-preview-meta">'
-    + '<span class="rrb-badge" style="background:rgba(124,58,237,0.2);color:#c4b5fd;border:1px solid rgba(124,58,237,0.3);">pack</span>'
+    + '<span class="rrb-badge" style="background:rgba(124,58,237,0.2);color:#c4b5fd;border:1px solid rgba(124,58,237,0.3);">bundle</span>'
     + '<span class="rrb-badge rrb-badge-version">v' + pack.version + '</span>'
     + authorHtml + '</div>' + tagsHtml + '</div></div>'
     + descHtml + itemsHtml
     + '<button class="rrb-import-btn rrb-import-full" data-id="' + pack.id + '" data-name="' + pack.name + '">'
-    + 'Import Entire Pack</button>'
+    + 'Import Entire Bundle</button>'
   );
 
   this._showScreen("preview");
@@ -835,14 +835,14 @@ HHBrowserApp.prototype._showPackPreview = async function(packId) {
     const id = $(e.currentTarget).data("id");
     const name = $(e.currentTarget).data("name");
     const btn = $(e.currentTarget);
-    btn.prop("disabled", true).text("Importing pack...");
+    btn.prop("disabled", true).text("Importing bundle...");
     try {
       await HHImporter.importPack(id);
-      btn.text("Pack Imported!");
-      ui.notifications.info("Pack imported successfully.");
+      btn.text("Bundle Imported!");
+      ui.notifications.info("Bundle imported successfully.");
     } catch (err) {
-      btn.prop("disabled", false).text("Import Entire Pack");
-      ui.notifications.error("Pack import failed: " + err.message);
+      btn.prop("disabled", false).text("Import Entire Bundle");
+      ui.notifications.error("Bundle import failed:" + err.message);
     }
   });
 };
@@ -852,7 +852,7 @@ class HHImporter {
     const items = pack.pack_items || [];
 
     if (!items.length) {
-      throw new Error("This pack has no items to import.");
+      throw new Error("This bundle has no items to import.");
     }
 
     ui.notifications.info("Importing: " + pack.name + " (" + items.length + " items)...");
@@ -873,9 +873,9 @@ class HHImporter {
     }
 
     if (results.failed.length) {
-      ui.notifications.warn(`Pack imported with ${results.failed.length} error(s): ${results.failed.join(", ")}`);
+      ui.notifications.warn(`Bundle imported with ${results.failed.length} error(s): ${results.failed.join(", ")}`);
     } else {
-      ui.notifications.info("Pack imported: " + results.success.length + " items added.");
+      ui.notifications.info("Bundle imported: " + results.success.length + " items added.");
     }
 
     return results;
