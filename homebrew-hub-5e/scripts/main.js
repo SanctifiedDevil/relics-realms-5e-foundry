@@ -1080,16 +1080,30 @@ class HHImporter {
       ui.notifications.info(`Downloading ${sounds.length} sound file(s)...`);
       for (let i = 0; i < sounds.length; i++) {
         const sound = { ...sounds[i] };
-        const soundUrl = sound.path || sound.audio_url || "";
+        // Check both path and audio_url for remote URLs
+        const soundUrl = (sound.audio_url && sound.audio_url.startsWith("http")) ? sound.audio_url
+          : (sound.path && sound.path.startsWith("http")) ? sound.path
+          : "";
 
-        if (soundUrl && (soundUrl.startsWith("http://") || soundUrl.startsWith("https://"))) {
-          // Remote URL — download it
+        if (soundUrl) {
+          // Use original_filename if available, otherwise generate a name
           const soundExt = soundUrl.match(/\.(ogg|wav|webm|mp3)(\?|$)/i)?.[1] || "ogg";
-          const soundFileName = `${safeName}_sound_${i}.${soundExt}`;
+          const soundFileName = sound.original_filename
+            ? sound.original_filename.replace(/[^a-zA-Z0-9._-]/g, "_")
+            : `${safeName}_sound_${i}.${soundExt}`;
+          ui.notifications.info(`Downloading sound ${i + 1}/${sounds.length}: ${soundFileName}`);
           const localPath = await this.downloadToLocal(soundUrl, soundDir, soundFileName);
-          sound.path = localPath || soundUrl;
+          if (localPath) {
+            sound.path = localPath;
+            console.log(`HH | Sound ${i}: ${soundUrl} → ${localPath}`);
+          } else {
+            console.warn(`HH | Sound ${i}: download failed, keeping URL: ${soundUrl}`);
+          }
         }
-        // If path doesn't start with http, assume it's already a local Foundry path
+        // Clean up extra fields that Foundry doesn't need
+        delete sound.audio_url;
+        delete sound.original_filename;
+        delete sound.original_path;
         localSounds.push(sound);
       }
     }
