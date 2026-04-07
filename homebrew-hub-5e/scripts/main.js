@@ -140,12 +140,18 @@ Hooks.on("ready", () => {
     btn.setAttribute("aria-label", "Relics & Realms Bazaar");
     btn.setAttribute("data-tooltip", "Relics & Realms Bazaar");
     btn.style.padding = "2px";
+    btn.style.background = "white";
+    btn.style.borderRadius = "4px";
+    btn.style.width = "28px";
+    btn.style.height = "28px";
+    btn.style.display = "flex";
+    btn.style.alignItems = "center";
+    btn.style.justifyContent = "center";
     const img = document.createElement("img");
     img.src = "modules/homebrew-hub-5e/tower-simple.png";
     img.alt = "Relics & Realms";
-    img.style.width = "24px";
-    img.style.height = "24px";
-    img.style.filter = "brightness(0) invert(1)";
+    img.style.width = "22px";
+    img.style.height = "22px";
     img.style.objectFit = "contain";
     btn.appendChild(img);
 
