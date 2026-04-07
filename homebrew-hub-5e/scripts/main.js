@@ -962,10 +962,55 @@ class HHImporter {
 
   static async importMap(item) {
     const d = item.data || {};
+    const imageUrl = d.map_image_url || item.image_url || null;
+
+    let localImagePath = null;
+
+    // Download the map image to Foundry's local storage
+    if (imageUrl) {
+      try {
+        ui.notifications.info("Downloading map image...");
+
+        // Fetch the image as a blob
+        const response = await fetch(imageUrl);
+        if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+        const blob = await response.blob();
+
+        // Determine file extension from URL or content type
+        const contentType = blob.type || "image/png";
+        const extMap = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+        const ext = extMap[contentType] || "png";
+
+        // Create a safe filename
+        const safeName = item.name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
+        const fileName = `${safeName}_${item.id.substring(0, 8)}.${ext}`;
+
+        // Ensure the target directory exists
+        const targetDir = "relics-realms-maps";
+        try {
+          await FilePicker.browse("data", targetDir);
+        } catch {
+          await FilePicker.createDirectory("data", targetDir);
+        }
+
+        // Upload the file
+        const file = new File([blob], fileName, { type: contentType });
+        const uploadResult = await FilePicker.upload("data", targetDir, file);
+
+        if (uploadResult?.path) {
+          localImagePath = uploadResult.path;
+          console.log("HH | Map image saved to:", localImagePath);
+        }
+      } catch (err) {
+        console.warn("HH | Failed to download map image, using URL directly:", err);
+        // Fall back to using the URL directly (may not work for all setups)
+        localImagePath = imageUrl;
+      }
+    }
 
     const sceneData = {
       name: item.name,
-      img: d.map_image_url || item.image_url || null,
+      img: localImagePath,
       width: d.map_width || 4000,
       height: d.map_height || 3000,
       padding: d.scene_padding ?? 0.25,
