@@ -997,10 +997,14 @@ class HHImporter {
         const file = new File([blob], fileName, { type: contentType });
         const uploadResult = await FilePicker.upload("data", targetDir, file);
 
+        console.log("HH | Upload result:", JSON.stringify(uploadResult));
         if (uploadResult?.path) {
           localImagePath = uploadResult.path;
-          console.log("HH | Map image saved to:", localImagePath);
+        } else {
+          // Fallback: construct path manually
+          localImagePath = `${targetDir}/${fileName}`;
         }
+        console.log("HH | Map image path:", localImagePath);
       } catch (err) {
         console.warn("HH | Failed to download map image, using URL directly:", err);
         // Fall back to using the URL directly (may not work for all setups)
@@ -1011,6 +1015,7 @@ class HHImporter {
     const sceneData = {
       name: item.name,
       img: localImagePath,
+      background: { src: localImagePath },
       width: d.map_width || 4000,
       height: d.map_height || 3000,
       padding: d.scene_padding ?? 0.25,
