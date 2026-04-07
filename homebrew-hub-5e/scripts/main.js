@@ -1057,6 +1057,8 @@ class HHImporter {
 
   static async importMap(item) {
     const d = item.data || {};
+    console.log("HH | Map data keys:", Object.keys(d));
+    console.log("HH | Walls:", d.walls?.length || 0, "Lights:", d.lights?.length || 0, "Sounds:", d.sounds?.length || 0);
     const imageUrl = d.map_image_url || item.image_url || null;
     const safeName = item.name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
     const mapDir = "relics-realms-maps";
