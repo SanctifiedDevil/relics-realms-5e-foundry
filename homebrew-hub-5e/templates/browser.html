@@ -1,0 +1,45 @@
+<div class="rrb-browser" id="rrb-root">
+
+  <div class="rrb-auth-bar" id="rrb-auth-bar">
+    <div id="rrb-auth-status">Checking...</div>
+    <div id="rrb-auth-actions"></div>
+  </div>
+
+  <div class="rrb-mode-tabs">
+    <button class="rrb-mode-tab rrb-mode-active" id="rrb-tab-mine" data-mode="mine">My Creations</button>
+    <button class="rrb-mode-tab" id="rrb-tab-library" data-mode="library">My Library</button>
+  </div>
+
+  <div id="rrb-screen-categories" class="rrb-screen">
+    <div class="rrb-header">
+      <div class="rrb-header-title" id="rrb-categories-title">My Creations</div>
+      <input type="text" id="rrb-global-search" class="rrb-search" placeholder="Search..." />
+    </div>
+    <div class="rrb-categories" id="rrb-category-grid">
+      <div class="rrb-category-loading">Consulting the archives...</div>
+    </div>
+  </div>
+
+  <div id="rrb-screen-items" class="rrb-screen" style="display:none;">
+    <div class="rrb-header">
+      <button class="rrb-back-btn" id="rrb-back-to-categories">&larr; Back</button>
+      <div class="rrb-header-title" id="rrb-list-title">Items</div>
+      <input type="text" id="rrb-item-search" class="rrb-search" placeholder="Search..." />
+    </div>
+    <div class="rrb-results" id="rrb-item-list"></div>
+    <div class="rrb-pagination">
+      <button id="rrb-prev-page" class="rrb-page-btn">&laquo;</button>
+      <span class="rrb-page-info" id="rrb-page-info">1 / 1</span>
+      <button id="rrb-next-page" class="rrb-page-btn">&raquo;</button>
+    </div>
+  </div>
+
+  <div id="rrb-screen-preview" class="rrb-screen" style="display:none;">
+    <div class="rrb-header">
+      <button class="rrb-back-btn" id="rrb-back-to-list">&larr; Back</button>
+      <div class="rrb-header-title" id="rrb-preview-title">Preview</div>
+    </div>
+    <div class="rrb-preview" id="rrb-preview-content"></div>
+  </div>
+
+</div>

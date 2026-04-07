@@ -1,0 +1,31 @@
+{{#if loggedInUser}}
+<div class="rrb-logged-in">
+  <div class="rrb-status-icon">&#10022;</div>
+  <div class="rrb-user-name">{{loggedInUser.username}}</div>
+  <div class="rrb-user-sub">{{loggedInUser.email}}</div>
+  <button id="hh-open-browser" class="rrb-open-browser-btn">
+    Open the Bazaar
+  </button>
+  <button id="hh-logout" class="rrb-logout-btn">
+    Leave Bazaar
+  </button>
+</div>
+{{else}}
+<div class="rrb-login">
+  <p class="rrb-login-title">Enter the Bazaar</p>
+  <form id="hh-login-form" autocomplete="off">
+    <div class="rrb-form-group" style="margin-bottom: 0.5rem;">
+      <label class="rrb-label">Email</label>
+      <input type="email" id="hh-email" class="rrb-input" placeholder="you@example.com" required />
+    </div>
+    <div class="rrb-form-group" style="margin-bottom: 0.75rem;">
+      <label class="rrb-label">Password</label>
+      <input type="password" id="hh-password" class="rrb-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required />
+    </div>
+    <div id="hh-login-status" class="rrb-status-msg"></div>
+    <button type="submit" id="hh-login-submit" class="rrb-submit-btn" style="margin-top: 0.5rem;">
+      Enter
+    </button>
+  </form>
+</div>
+{{/if}}
