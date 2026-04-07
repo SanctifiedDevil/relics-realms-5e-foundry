@@ -140,7 +140,7 @@ Hooks.on("ready", () => {
     btn.setAttribute("aria-label", "Relics & Realms Bazaar");
     btn.setAttribute("data-tooltip", "Relics & Realms Bazaar");
     btn.style.fontSize = "20px";
-    btn.innerHTML = "🏰";
+    btn.innerHTML = "♜";
 
     btn.addEventListener("click", (e) => {
       e.preventDefault();
