@@ -402,6 +402,7 @@ class HHBrowserApp extends Application {
       { type: "subclass",    label: "Subclasses",   icon: "&#9874;" },
       { type: "journal",     label: "Journals",     icon: "&#9998;" },
       { type: "map",         label: "Maps",         icon: "&#8862;" },
+      { type: "audio",       label: "Audio",        icon: "&#9835;" },
     ];
 
     let counts = {};
@@ -623,6 +624,17 @@ class HHBrowserApp extends Application {
         ${d.grid_size ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Grid Size</span><span class="rrb-stat-value">${d.grid_size}px</span></div>` : ""}
         ${d.darkness_level ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Darkness</span><span class="rrb-stat-value">${(d.darkness_level * 100).toFixed(0)}%</span></div>` : ""}
         ${d.map_image_url ? `<div style="margin-top:0.5rem;"><img src="${d.map_image_url}" style="width:100%;border-radius:6px;border:1px solid var(--rrb-border-subtle);" /></div>` : ""}
+      `;
+    } else if (fullItem.content_type === "audio") {
+      const dur = d.audio_duration ? `${Math.floor(d.audio_duration / 60)}:${(d.audio_duration % 60).toString().padStart(2, "0")}` : "";
+      statsHtml = `
+        ${d.category ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Category</span><span class="rrb-stat-value">${d.category}</span></div>` : ""}
+        ${dur ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Duration</span><span class="rrb-stat-value">${dur}</span></div>` : ""}
+        ${d.audio_format ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Format</span><span class="rrb-stat-value">${d.audio_format.toUpperCase()}</span></div>` : ""}
+        ${d.loop !== undefined ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Loop</span><span class="rrb-stat-value">${d.loop ? "Yes" : "No"}</span></div>` : ""}
+        ${d.mood ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Mood</span><span class="rrb-stat-value">${d.mood}</span></div>` : ""}
+        ${d.environment ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Environment</span><span class="rrb-stat-value">${d.environment}</span></div>` : ""}
+        ${d.audio_url ? `<div style="margin-top:0.5rem;"><audio controls src="${d.audio_url}" style="width:100%;" preload="metadata"></audio></div>` : ""}
       `;
     }
 
@@ -872,6 +884,9 @@ class HHImporter {
     if (item.content_type === "map") {
       return this.importMap(item);
     }
+    if (item.content_type === "audio") {
+      return this.importAudio(item);
+    }
 
     const itemData = this.mapToDnd5e(item);
     const results = {};
@@ -960,55 +975,122 @@ class HHImporter {
     return results;
   }
 
+  /**
+   * Download a remote file to Foundry's local storage.
+   * @param {string} url - Remote file URL
+   * @param {string} targetDir - Target directory in Foundry data
+   * @param {string} fileName - Desired file name
+   * @returns {Promise<string|null>} Local file path or null on failure
+   */
+  static async downloadToLocal(url, targetDir, fileName) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+
+      // Ensure directory exists
+      try {
+        await FilePicker.browse("data", targetDir);
+      } catch {
+        await FilePicker.createDirectory("data", targetDir);
+      }
+
+      const file = new File([blob], fileName, { type: blob.type });
+      const result = await FilePicker.upload("data", targetDir, file);
+      const path = result?.path || `${targetDir}/${fileName}`;
+      console.log(`HH | Downloaded ${fileName} to ${path}`);
+      return path;
+    } catch (err) {
+      console.warn(`HH | Failed to download ${url}:`, err);
+      return null;
+    }
+  }
+
+  static async importAudio(item) {
+    const d = item.data || {};
+    const audioUrl = d.audio_url;
+    if (!audioUrl) throw new Error("No audio file URL found.");
+
+    const safeName = item.name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
+    const soundDir = "relics-realms-audio";
+
+    // Download the audio file
+    ui.notifications.info(`Downloading audio: ${item.name}...`);
+    const ext = d.audio_format || audioUrl.match(/\.(ogg|wav|webm|mp3)(\?|$)/i)?.[1] || "ogg";
+    const localPath = await this.downloadToLocal(
+      audioUrl, soundDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`
+    );
+    if (!localPath) throw new Error("Failed to download audio file.");
+
+    // Find or create a "Relics & Realms" playlist
+    const playlistName = "Relics & Realms Imports";
+    let playlist = game.playlists.find(p => p.name === playlistName);
+    if (!playlist) {
+      playlist = await Playlist.create({
+        name: playlistName,
+        mode: 0, // sequential
+        flags: { [MODULE_ID]: { managed: true } },
+      });
+    }
+
+    // Check if sound already exists in the playlist
+    const existingSound = playlist.sounds.find(s => s.getFlag(MODULE_ID, "sourceId") === item.id);
+
+    const soundData = {
+      name: item.name,
+      path: localPath,
+      volume: d.default_volume ?? 0.8,
+      repeat: d.loop ?? true,
+      flags: { [MODULE_ID]: { sourceId: item.id, version: item.version, category: d.category, mood: d.mood, environment: d.environment } },
+    };
+
+    if (existingSound) {
+      await existingSound.update(soundData);
+      ui.notifications.info(`Updated audio "${item.name}" in playlist.`);
+    } else {
+      await playlist.createEmbeddedDocuments("PlaylistSound", [soundData]);
+      ui.notifications.info(`Added "${item.name}" to ${playlistName} playlist.`);
+    }
+
+    return { playlist, path: localPath };
+  }
+
   static async importMap(item) {
     const d = item.data || {};
     const imageUrl = d.map_image_url || item.image_url || null;
+    const safeName = item.name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
+    const mapDir = "relics-realms-maps";
+    const soundDir = "relics-realms-maps/sounds";
 
+    // Download the map image
     let localImagePath = null;
-
-    // Download the map image to Foundry's local storage
     if (imageUrl) {
-      try {
-        ui.notifications.info("Downloading map image...");
+      ui.notifications.info("Downloading map image...");
+      const ext = imageUrl.match(/\.(png|jpe?g|webp)(\?|$)/i)?.[1] || "png";
+      localImagePath = await this.downloadToLocal(
+        imageUrl, mapDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`
+      );
+      if (!localImagePath) localImagePath = imageUrl; // fallback to URL
+    }
 
-        // Fetch the image as a blob
-        const response = await fetch(imageUrl);
-        if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-        const blob = await response.blob();
+    // Download sound files and update paths
+    const sounds = d.sounds || [];
+    const localSounds = [];
+    if (sounds.length > 0) {
+      ui.notifications.info(`Downloading ${sounds.length} sound file(s)...`);
+      for (let i = 0; i < sounds.length; i++) {
+        const sound = { ...sounds[i] };
+        const soundUrl = sound.path || sound.audio_url || "";
 
-        // Determine file extension from URL or content type
-        const contentType = blob.type || "image/png";
-        const extMap = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
-        const ext = extMap[contentType] || "png";
-
-        // Create a safe filename
-        const safeName = item.name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
-        const fileName = `${safeName}_${item.id.substring(0, 8)}.${ext}`;
-
-        // Ensure the target directory exists
-        const targetDir = "relics-realms-maps";
-        try {
-          await FilePicker.browse("data", targetDir);
-        } catch {
-          await FilePicker.createDirectory("data", targetDir);
+        if (soundUrl && (soundUrl.startsWith("http://") || soundUrl.startsWith("https://"))) {
+          // Remote URL — download it
+          const soundExt = soundUrl.match(/\.(ogg|wav|webm|mp3)(\?|$)/i)?.[1] || "ogg";
+          const soundFileName = `${safeName}_sound_${i}.${soundExt}`;
+          const localPath = await this.downloadToLocal(soundUrl, soundDir, soundFileName);
+          sound.path = localPath || soundUrl;
         }
-
-        // Upload the file
-        const file = new File([blob], fileName, { type: contentType });
-        const uploadResult = await FilePicker.upload("data", targetDir, file);
-
-        console.log("HH | Upload result:", JSON.stringify(uploadResult));
-        if (uploadResult?.path) {
-          localImagePath = uploadResult.path;
-        } else {
-          // Fallback: construct path manually
-          localImagePath = `${targetDir}/${fileName}`;
-        }
-        console.log("HH | Map image path:", localImagePath);
-      } catch (err) {
-        console.warn("HH | Failed to download map image, using URL directly:", err);
-        // Fall back to using the URL directly (may not work for all setups)
-        localImagePath = imageUrl;
+        // If path doesn't start with http, assume it's already a local Foundry path
+        localSounds.push(sound);
       }
     }
 
@@ -1033,7 +1115,7 @@ class HHImporter {
       navigation: true,
       walls: d.walls || [],
       lights: d.lights || [],
-      sounds: d.sounds || [],
+      sounds: localSounds,
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
     };
 
