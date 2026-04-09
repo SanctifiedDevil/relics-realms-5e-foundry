@@ -1288,7 +1288,7 @@ class HHImporter {
       name: item.name,
       type: this.mapContentType(item.content_type),
       img: HHApi.resolveImageUrl(item.image_url) || this.getDefaultIcon(item.content_type),
-      system: { description: { value: item.description || "" } },
+      system: { description: { value: item.description || "" }, sourceItem: "" },
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
     };
     const d = item.data || {};
@@ -1421,23 +1421,11 @@ class HHImporter {
   }
 
   static mapSpell(base, d) {
-    // Map class names to dnd5e class identifiers
-    const classMap = {
-      barbarian: "barbarian", bard: "bard", cleric: "cleric", druid: "druid",
-      fighter: "fighter", monk: "monk", paladin: "paladin", ranger: "ranger",
-      rogue: "rogue", sorcerer: "sorcerer", warlock: "warlock", wizard: "wizard",
-    };
-    const sourceClass = (d.classes || [])
-      .map(c => classMap[c.toLowerCase()])
-      .filter(Boolean)
-      .join(", ");
-
     return foundry.utils.mergeObject(base, {
       system: {
         description: base.system.description,
         level: d.level ?? 1,
         school: (d.school || "evocation").substring(0, 3),
-        sourceClass: sourceClass || "",
         properties: this.mapSpellComponents(d),
         materials: { value: d.material_description || "", consumed: false, cost: 0, supply: 0 },
         range: this.parseSpellRange(d.range),
