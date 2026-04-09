@@ -1,22 +1,22 @@
 /* Relics & Realms Bazaar - Foundry Module Styles */
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&display=swap');
 
 :root {
   --rrb-bg-base: #1c1c20;
   --rrb-bg-surface: #242428;
-  --rrb-bg-elevated: #1e1b2e;
-  --rrb-bg-card: #16142a;
+  --rrb-bg-elevated: #2e2e33;
+  --rrb-bg-card: #242428;
   --rrb-accent-violet: #8a7a50;
   --rrb-accent-violet-light: #c9a84c;
   --rrb-accent-magenta: #8a7a50;
-  --rrb-accent-gold: #d97706;
-  --rrb-accent-gold-light: #fbbf24;
-  --rrb-text-primary: #f1f0f9;
-  --rrb-text-secondary: #9d9ab0;
-  --rrb-text-muted: #6b6880;
-  --rrb-border-subtle: rgba(200, 168, 76, 0.15);
-  --rrb-border-default: rgba(200, 168, 76, 0.3);
+  --rrb-accent-gold: #c9a84c;
+  --rrb-accent-gold-light: #e0c070;
+  --rrb-text-primary: #e8dcc8;
+  --rrb-text-secondary: #b0a488;
+  --rrb-text-muted: #888896;
+  --rrb-border-subtle: rgba(200, 168, 76, 0.12);
+  --rrb-border-default: rgba(200, 168, 76, 0.25);
 }
 
 /* Override Foundry window styles */
@@ -29,14 +29,14 @@
 #homebrew-hub-browser .window-header {
   background: var(--rrb-bg-surface) !important;
   border-bottom: 1px solid var(--rrb-border-default) !important;
-  font-family: 'Cinzel', serif !important;
+  font-family: 'Uncial Antiqua', serif !important;
   letter-spacing: 0.1em !important;
   color: var(--rrb-accent-gold-light) !important;
 }
 
 #homebrew-hub-browser .window-title {
-  font-family: 'Cinzel', serif !important;
-  background: linear-gradient(135deg, #fbbf24, #c9a84c, #ec4899);
+  font-family: 'Uncial Antiqua', serif !important;
+  background: linear-gradient(135deg, #e0c070, #c9a84c, #8a7a50);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -61,8 +61,8 @@
 }
 
 #homebrew-hub-login .window-title {
-  font-family: 'Cinzel', serif !important;
-  background: linear-gradient(135deg, #fbbf24, #c9a84c, #ec4899);
+  font-family: 'Uncial Antiqua', serif !important;
+  background: linear-gradient(135deg, #e0c070, #c9a84c, #8a7a50);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -97,7 +97,7 @@
   border: 1px solid var(--rrb-border-subtle);
   border-radius: 6px;
   color: var(--rrb-text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s;
@@ -118,7 +118,7 @@
   border: 1px solid var(--rrb-border-subtle);
   border-radius: 6px;
   color: var(--rrb-text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 0.85rem;
   outline: none;
   cursor: pointer;
@@ -195,7 +195,7 @@
 }
 
 .rrb-item-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--rrb-text-primary);
@@ -219,7 +219,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 .rrb-badge {
@@ -230,7 +230,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 .rrb-badge-weapon { background: rgba(220,38,38,0.2); color: #fca5a5; border: 1px solid rgba(220,38,38,0.3); }
@@ -246,7 +246,7 @@
 .rrb-author {
   font-size: 0.7rem;
   color: var(--rrb-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 /* Import button */
@@ -260,7 +260,7 @@
   border: none;
   border-radius: 6px;
   color: white;
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -286,7 +286,7 @@
   text-align: center;
   padding: 3rem 1rem;
   color: var(--rrb-text-muted);
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.85rem;
   letter-spacing: 0.05em;
 }
@@ -329,7 +329,7 @@
 }
 
 .rrb-page-info {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.75rem;
   color: var(--rrb-text-muted);
   letter-spacing: 0.05em;
@@ -344,7 +344,7 @@
 }
 
 .rrb-login-title {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.85rem;
   color: var(--rrb-text-secondary);
   letter-spacing: 0.1em;
@@ -359,7 +359,7 @@
 }
 
 .rrb-label {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -373,7 +373,7 @@
   border: 1px solid var(--rrb-border-subtle);
   border-radius: 6px;
   color: var(--rrb-text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s;
@@ -395,7 +395,7 @@
   border: none;
   border-radius: 6px;
   color: white;
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -420,7 +420,7 @@
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   font-size: 0.8rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   text-align: center;
   display: none;
 }
@@ -447,7 +447,7 @@
 }
 
 .rrb-user-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 1rem;
   color: var(--rrb-text-primary);
   font-weight: 700;
@@ -456,7 +456,7 @@
 .rrb-user-sub {
   font-size: 0.8rem;
   color: var(--rrb-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 .rrb-open-browser-btn {
@@ -465,7 +465,7 @@
   border: none;
   border-radius: 6px;
   color: white;
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -486,7 +486,7 @@
   border: 1px solid var(--rrb-border-default);
   border-radius: 6px;
   color: var(--rrb-text-muted);
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -502,7 +502,7 @@
 /* Sidebar buttons */
 .hh-sidebar-buttons button {
   cursor: pointer;
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
 }
@@ -545,7 +545,7 @@
 }
 
 .rrb-cat-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--rrb-text-primary);
@@ -553,9 +553,9 @@
 }
 
 .rrb-cat-count {
-  font-size: 0.68rem;
+  font-size: 0.9rem;
   color: var(--rrb-text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 .rrb-category-loading {
@@ -563,7 +563,7 @@
   text-align: center;
   padding: 2rem;
   color: var(--rrb-text-muted);
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.8rem;
   letter-spacing: 0.05em;
 }
@@ -580,7 +580,7 @@
 }
 
 .rrb-header-title {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--rrb-text-secondary);
@@ -594,7 +594,7 @@
   border: 1px solid var(--rrb-border-default);
   border-radius: 5px;
   color: var(--rrb-text-secondary);
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -651,7 +651,7 @@
 }
 
 .rrb-preview-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 1rem;
   font-weight: 700;
   color: var(--rrb-text-primary);
@@ -680,14 +680,14 @@
   background: rgba(200, 168, 76, 0.1);
   color: var(--rrb-accent-violet-light);
   border: 1px solid rgba(200, 168, 76, 0.2);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 .rrb-preview-description {
   font-size: 0.8rem;
   color: var(--rrb-text-secondary);
   line-height: 1.6;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   padding: 0.75rem;
   background: var(--rrb-bg-elevated);
   border-radius: 6px;
@@ -718,7 +718,7 @@
 }
 
 .rrb-stat-label {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.68rem;
   letter-spacing: 0.05em;
   color: var(--rrb-text-muted);
@@ -726,7 +726,7 @@
 }
 
 .rrb-stat-value {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   color: var(--rrb-text-primary);
   font-weight: 500;
   text-align: right;
@@ -749,14 +749,14 @@
 }
 
 .rrb-ability-label {
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.6rem;
   color: var(--rrb-text-muted);
   letter-spacing: 0.05em;
 }
 
 .rrb-ability-value {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--rrb-text-primary);
@@ -764,7 +764,7 @@
 }
 
 .rrb-ability-mod {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 0.65rem;
   color: var(--rrb-accent-violet-light);
 }
@@ -790,7 +790,7 @@
   border: 1px solid var(--rrb-border-default);
   border-radius: 6px;
   color: var(--rrb-text-secondary);
-  font-family: 'Cinzel', serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -834,7 +834,7 @@
   border: 1px solid var(--rrb-border-default);
   border-radius: 5px;
   color: var(--rrb-text-secondary);
-  font-family: Cinzel, serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.65rem;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -858,7 +858,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--rrb-text-muted);
-  font-family: Cinzel, serif;
+  font-family: 'Uncial Antiqua', serif;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   cursor: pointer;

@@ -8,7 +8,7 @@ Hooks.once("init", () => {
     name: "API URL",
     hint: "The URL of your Relics & Realms Bazaar server",
     scope: "world", config: true, type: String,
-    default: "http://192.168.1.76:3000",
+    default: "https://relicsandrealms.com",
   });
   game.settings.register(MODULE_ID, "authToken", {
     name: "Auth Token",
@@ -33,6 +33,14 @@ class HHApi {
   static getBaseUrl() { return game.settings.get(MODULE_ID, "apiUrl"); }
   static getToken() { return game.settings.get(MODULE_ID, "authToken"); }
 
+  /** Resolve an image URL — makes relative proxy paths absolute using the API base URL */
+  static resolveImageUrl(url) {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("/")) return `${this.getBaseUrl()}${url}`;
+    return url;
+  }
+
   static async request(path, options = {}) {
     const url = `${this.getBaseUrl()}${path}`;
     const token = this.getToken();
@@ -45,6 +53,8 @@ class HHApi {
     if (response.status === 401) {
       await game.settings.set(MODULE_ID, "authToken", "");
       ui.notifications.warn("Session expired. Please log in again.");
+      const openBrowser = Object.values(ui.windows).find(w => w.id === "homebrew-hub-browser");
+      if (openBrowser) openBrowser.close();
       new HHLoginApp().render(true);
       throw new Error("Session expired");
     }
@@ -118,6 +128,8 @@ class HHSidebarTab extends Application {
     });
     html.find("#rrb-sidebar-logout-btn").click(async () => {
       await game.settings.set(MODULE_ID, "authToken", "");
+      const openBrowser = Object.values(ui.windows).find(w => w.id === "homebrew-hub-browser");
+      if (openBrowser) openBrowser.close();
       this.render();
     });
   }
@@ -137,10 +149,14 @@ Hooks.on("ready", () => {
     btn.setAttribute("role", "tab");
     btn.setAttribute("aria-pressed", "false");
     btn.setAttribute("data-group", "primary");
-    btn.setAttribute("aria-label", "Relics & Realms Bazaar");
-    btn.setAttribute("data-tooltip", "Relics & Realms Bazaar");
-    btn.style.fontSize = "20px";
-    btn.innerHTML = "♜";
+    btn.setAttribute("aria-label", "Relics & Realms");
+    btn.setAttribute("data-tooltip", "Relics & Realms");
+    btn.style.cssText = "width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;";
+    const img = document.createElement("img");
+    img.src = "modules/homebrew-hub-5e/tower-foundry-cap-icon.png";
+    img.alt = "Relics & Realms";
+    img.style.cssText = "width:24px;height:24px;filter:invert(0.7) sepia(0.5) saturate(2) hue-rotate(10deg) brightness(0.85);pointer-events:none;";
+    btn.appendChild(img);
 
     btn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -162,7 +178,7 @@ class HHLoginApp extends Application {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: "homebrew-hub-login",
-      title: "Relics & Realms Bazaar",
+      title: "Relics & Realms",
       template: "modules/homebrew-hub-5e/templates/login.html",
       width: 360, height: "auto", resizable: false,
     });
@@ -172,8 +188,17 @@ class HHLoginApp extends Application {
     const token = game.settings.get(MODULE_ID, "authToken");
     let loggedInUser = null;
     if (token) {
-      try { loggedInUser = await HHApi.getMe(); }
-      catch { await game.settings.set(MODULE_ID, "authToken", ""); }
+      try {
+        const url = `${HHApi.getBaseUrl()}/api/me`;
+        const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+        if (res.ok) {
+          loggedInUser = await res.json();
+        } else {
+          await game.settings.set(MODULE_ID, "authToken", "");
+        }
+      } catch {
+        await game.settings.set(MODULE_ID, "authToken", "");
+      }
     }
     return { loggedInUser };
   }
@@ -203,6 +228,8 @@ class HHLoginApp extends Application {
     });
     html.find("#hh-logout").click(async () => {
       await game.settings.set(MODULE_ID, "authToken", "");
+      const openBrowser = Object.values(ui.windows).find(w => w.id === "homebrew-hub-browser");
+      if (openBrowser) openBrowser.close();
       this.render();
     });
     html.find("#hh-open-browser").click(() => {
@@ -228,7 +255,7 @@ class HHBrowserApp extends Application {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: "homebrew-hub-browser",
-      title: "Relics & Realms Bazaar",
+      title: "Relics & Realms",
       template: "modules/homebrew-hub-5e/templates/browser.html",
       width: 520, height: 640, resizable: true,
     });
@@ -267,7 +294,7 @@ class HHBrowserApp extends Application {
       this._page = 1;
       html.find(".rrb-mode-tab").removeClass("rrb-mode-active");
       $(e.currentTarget).addClass("rrb-mode-active");
-      const title = mode === "mine" ? "My Creations" : "My Library";
+      const title = mode === "mine" ? "My Creations" : "My Collection";
       html.find("#rrb-categories-title").text(title);
       html.find("#rrb-global-search").val("");
       this._showScreen("categories");
@@ -347,14 +374,8 @@ class HHBrowserApp extends Application {
     const actionsEl = this._html.find("#rrb-auth-actions");
 
     if (!token) {
-      statusEl.html("<span style=\"color:var(--rrb-text-muted);font-size:0.75rem;\">Not signed in</span>");
-      actionsEl.html(
-        "<button class=\"rrb-auth-btn\" id=\"rrb-bar-login\">Sign In</button>"
-      );
-      this._html.find("#rrb-bar-login").click(() => {
-        new HHLoginApp().render(true);
-        this.close();
-      });
+      this.close();
+      new HHLoginApp().render(true);
       return;
     }
 
@@ -374,14 +395,8 @@ class HHBrowserApp extends Application {
       });
     } catch (err) {
       await game.settings.set(MODULE_ID, "authToken", "");
-      statusEl.html("<span style=\"color:#fca5a5;font-size:0.75rem;\">Session expired</span>");
-      actionsEl.html(
-        "<button class=\"rrb-auth-btn\" id=\"rrb-bar-login\">Sign In</button>"
-      );
-      this._html.find("#rrb-bar-login").click(() => {
-        new HHLoginApp().render(true);
-        this.close();
-      });
+      this.close();
+      new HHLoginApp().render(true);
     }
   }
 
@@ -391,32 +406,35 @@ class HHBrowserApp extends Application {
     const grid = html.find("#rrb-category-grid");
 
     const categories = [
-      { type: "pack",       label: "Bundles",      icon: "&#9672;" },
-      { type: "weapon",     label: "Weapons",     icon: "&#9876;" },
-      { type: "spell",      label: "Spells",      icon: "&#10022;" },
-      { type: "monster",    label: "Monsters",    icon: "&#9760;" },
-      { type: "armor",      label: "Armor",       icon: "&#9737;" },
-      { type: "equipment",  label: "Equipment",   icon: "&#9674;" },
-      { type: "feat",       label: "Feats",       icon: "&#9733;" },
-      { type: "background", label: "Backgrounds", icon: "&#9812;" },
-      { type: "class",       label: "Classes",      icon: "&#9874;" },
-      { type: "subclass",    label: "Subclasses",   icon: "&#9874;" },
-      { type: "journal",     label: "Journals",     icon: "&#9998;" },
-      { type: "map",         label: "Maps",         icon: "&#8862;" },
-      { type: "audio",       label: "Audio",        icon: "&#9835;" },
+      { type: "pack",       label: "Bundles",      icon: "modules/homebrew-hub-5e/icons/bundle.png" },
+      { type: "weapon",     label: "Weapons",     icon: "modules/homebrew-hub-5e/icons/weapons.png" },
+      { type: "spell",      label: "Spells",      icon: "modules/homebrew-hub-5e/icons/spell.png" },
+      { type: "monster",    label: "Monsters",    icon: "modules/homebrew-hub-5e/icons/monsters.png" },
+      { type: "armor",      label: "Armor",       icon: "modules/homebrew-hub-5e/icons/armor.png" },
+      { type: "equipment",  label: "Equipment",   icon: "modules/homebrew-hub-5e/icons/gear.png" },
+      { type: "feat",       label: "Feats",       icon: "modules/homebrew-hub-5e/icons/feats.png" },
+      { type: "background", label: "Backgrounds", icon: "modules/homebrew-hub-5e/icons/backgrounds.png" },
+      { type: "class",       label: "Classes",      icon: "modules/homebrew-hub-5e/icons/classes.png" },
+      { type: "subclass",    label: "Subclasses",   icon: "modules/homebrew-hub-5e/icons/classes.png" },
+      { type: "journal",     label: "Journals",     icon: "modules/homebrew-hub-5e/icons/journal.png" },
+      { type: "map",         label: "Maps",         icon: "modules/homebrew-hub-5e/icons/maps.png" },
+      { type: "audio",       label: "Audio",        icon: "modules/homebrew-hub-5e/icons/audio.png" },
     ];
 
     let counts = {};
     try {
       const mode = this._mode || "mine";
       const agnosticTypes = ["map", "audio"];
+      const packParams = mode === "library"
+        ? { system: "dnd5e", limit: 1, purchased: "true" }
+        : { system: "dnd5e", limit: 1, author: "me" };
       const countPromises = categories.map(c =>
         c.type === "pack"
-          ? HHApi.getPacks({ system: "dnd5e", limit: 1 })
+          ? HHApi.getPacks(packParams)
               .then(d => ({ type: c.type, count: d.pagination?.total || 0 }))
               .catch(() => ({ type: c.type, count: 0 }))
           : mode === "library"
-            ? HHApi.getLibrary({ type: c.type, limit: 1 })
+            ? HHApi.getLibrary(Object.assign({ type: c.type, limit: 1 }, agnosticTypes.includes(c.type) ? {} : { system: "dnd5e" }))
                 .then(d => ({ type: c.type, count: d.pagination?.total || 0 }))
                 .catch(() => ({ type: c.type, count: 0 }))
             : HHApi.getContent(Object.assign(
@@ -438,7 +456,7 @@ class HHBrowserApp extends Application {
       const count = counts[cat.type] || 0;
       html2 += `
         <div class="rrb-cat-card" data-type="${cat.type}" data-label="${cat.label}">
-          <div class="rrb-cat-icon">${cat.icon}</div>
+          <div class="rrb-cat-icon"><img src="${cat.icon}" style="width:1.75rem;height:1.75rem;filter:invert(0.75) sepia(0.3) saturate(1.5) hue-rotate(10deg) brightness(0.9);"></div>
           <div class="rrb-cat-name">${cat.label}</div>
           <div class="rrb-cat-count">${count} item${count !== 1 ? "s" : ""}</div>
         </div>
@@ -473,9 +491,12 @@ class HHBrowserApp extends Application {
       const mode = this._mode || "mine";
       let data;
       if (mode === "library") {
+        const agnosticTypes = ["map", "audio"];
+        if (!agnosticTypes.includes(this._currentType)) {
+          params.system = "dnd5e";
+        }
         data = await HHApi.getLibrary(params);
       } else {
-        // Maps and audio are system-agnostic — don't filter by system
         const agnosticTypes = ["map", "audio"];
         if (!agnosticTypes.includes(this._currentType)) {
           params.system = "dnd5e";
@@ -509,7 +530,7 @@ class HHBrowserApp extends Application {
     let html2 = "";
     for (const item of this._items) {
       const imgHtml = item.image_url
-        ? `<img src="${item.image_url}" class="rrb-item-img" alt="${item.name}" />`
+        ? `<img src="${HHApi.resolveImageUrl(item.image_url)}" class="rrb-item-img" alt="${item.name}" />`
         : `<div class="rrb-item-img-placeholder">&#9670;</div>`;
       html2 += `
         <div class="rrb-item" data-id="${item.id}">
@@ -572,7 +593,7 @@ class HHBrowserApp extends Application {
 
     const d = fullItem.data || {};
     const imgHtml = fullItem.image_url
-      ? `<img src="${fullItem.image_url}" class="rrb-preview-img" alt="${fullItem.name}" />`
+      ? `<img src="${HHApi.resolveImageUrl(fullItem.image_url)}" class="rrb-preview-img" alt="${fullItem.name}" />`
       : `<div class="rrb-preview-img-placeholder">&#9670;</div>`;
 
     let statsHtml = "";
@@ -632,7 +653,7 @@ class HHBrowserApp extends Application {
         ${d.grid_type !== undefined ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Grid Type</span><span class="rrb-stat-value">${gridTypes[d.grid_type] || "Square"}</span></div>` : ""}
         ${d.grid_size ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Grid Size</span><span class="rrb-stat-value">${d.grid_size}px</span></div>` : ""}
         ${d.darkness_level ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Darkness</span><span class="rrb-stat-value">${(d.darkness_level * 100).toFixed(0)}%</span></div>` : ""}
-        ${d.map_image_url ? `<div style="margin-top:0.5rem;"><img src="${d.map_image_url}" style="width:100%;border-radius:6px;border:1px solid var(--rrb-border-subtle);" /></div>` : ""}
+        ${(d.map_preview_url || d.map_image_url) ? `<div style="margin-top:0.5rem;"><img src="${HHApi.resolveImageUrl(d.map_preview_url || d.map_image_url)}" style="width:100%;border-radius:6px;border:1px solid var(--rrb-border-subtle);" /></div>` : ""}
       `;
     } else if (fullItem.content_type === "audio") {
       const dur = d.audio_duration ? `${Math.floor(d.audio_duration / 60)}:${(d.audio_duration % 60).toString().padStart(2, "0")}` : "";
@@ -643,7 +664,7 @@ class HHBrowserApp extends Application {
         ${d.loop !== undefined ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Loop</span><span class="rrb-stat-value">${d.loop ? "Yes" : "No"}</span></div>` : ""}
         ${d.mood ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Mood</span><span class="rrb-stat-value">${d.mood}</span></div>` : ""}
         ${d.environment ? `<div class="rrb-stat-row"><span class="rrb-stat-label">Environment</span><span class="rrb-stat-value">${d.environment}</span></div>` : ""}
-        ${d.audio_url ? `<div style="margin-top:0.5rem;"><audio controls src="${d.audio_url}" style="width:100%;" preload="metadata"></audio></div>` : ""}
+        ${d.audio_url ? `<div style="margin-top:0.5rem;"><audio controls src="${HHApi.resolveImageUrl(d.audio_url)}" style="width:100%;" preload="metadata"></audio></div>` : ""}
       `;
     }
 
@@ -692,7 +713,10 @@ class HHBrowserApp extends Application {
 
 // These methods are part of HHBrowserApp but defined separately
 HHBrowserApp.prototype._loadPacks = async function() {
-  const params = { system: "dnd5e", page: this._page, limit: 20 };
+  const mode = this._mode || "mine";
+  const params = mode === "library"
+    ? { system: "dnd5e", page: this._page, limit: 20, purchased: "true" }
+    : { system: "dnd5e", page: this._page, limit: 20, author: "me" };
   if (this._search) params.search = this._search;
   try {
     const data = await HHApi.getPacks(params);
@@ -722,7 +746,7 @@ HHBrowserApp.prototype._renderPackList = function() {
   let html2 = "";
   for (const pack of this._packs) {
     const imgHtml = pack.image_url
-      ? '<img src="' + pack.image_url + '" class="rrb-item-img" alt="' + pack.name + '" />'
+      ? '<img src="' + HHApi.resolveImageUrl(pack.image_url) + '" class="rrb-item-img" alt="' + pack.name + '" />'
       : '<div class="rrb-item-img-placeholder">&#9672;</div>';
     const authorHtml = pack.profiles && pack.profiles.username
       ? '<span class="rrb-author">by ' + pack.profiles.username + '</span>' : "";
@@ -779,7 +803,7 @@ HHBrowserApp.prototype._showPackPreview = async function(packId) {
   this._html.find("#rrb-preview-title").text(pack.name);
 
   const imgHtml = pack.image_url
-    ? '<img src="' + pack.image_url + '" class="rrb-preview-img" alt="' + pack.name + '" />'
+    ? '<img src="' + HHApi.resolveImageUrl(pack.image_url) + '" class="rrb-preview-img" alt="' + pack.name + '" />'
     : '<div class="rrb-preview-img-placeholder">&#9672;</div>';
 
   const items = pack.pack_items || [];
@@ -791,7 +815,7 @@ HHBrowserApp.prototype._showPackPreview = async function(packId) {
       const item = pi.content_items;
       if (!item) continue;
       const thumbHtml = item.image_url
-        ? '<img src="' + item.image_url + '" style="width:20px;height:20px;object-fit:cover;border-radius:3px;" />'
+        ? '<img src="' + HHApi.resolveImageUrl(item.image_url) + '" style="width:20px;height:20px;object-fit:cover;border-radius:3px;" />'
         : "";
       rows += '<div class="rrb-stat-row">'
         + '<span class="rrb-stat-label" style="display:flex;align-items:center;gap:0.4rem;">'
@@ -952,7 +976,7 @@ class HHImporter {
 
     const journalData = {
       name: item.name,
-      img: item.image_url || null,
+      img: HHApi.resolveImageUrl(item.image_url) || null,
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
       pages: pages.map((page, idx) => ({
         name: page.title || "Page " + (idx + 1),
@@ -991,9 +1015,31 @@ class HHImporter {
    * @param {string} fileName - Desired file name
    * @returns {Promise<string|null>} Local file path or null on failure
    */
-  static async downloadToLocal(url, targetDir, fileName) {
+  static async downloadToLocal(url, targetDir, fileName, contentItemId = null) {
     try {
-      const response = await fetch(url);
+      let downloadUrl = HHApi.resolveImageUrl(url);
+
+      // If this is a private bucket URL, get a signed URL first
+      if (contentItemId && url.includes("/storage/v1/object/public/")) {
+        const bucketMatch = url.match(/\/storage\/v1\/object\/public\/(map-images|map-sounds)\/(.+)/);
+        if (bucketMatch) {
+          const [, bucket, path] = bucketMatch;
+          try {
+            const data = await HHApi.request("/api/storage/signed-url", {
+              method: "POST",
+              body: JSON.stringify({ bucket, path: decodeURIComponent(path), content_item_id: contentItemId }),
+            });
+            if (data.url) {
+              downloadUrl = data.url;
+              console.log(`HH | Got signed URL for ${fileName}`);
+            }
+          } catch (err) {
+            console.warn(`HH | Failed to get signed URL for ${fileName}, trying direct:`, err);
+          }
+        }
+      }
+
+      const response = await fetch(downloadUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
 
@@ -1027,7 +1073,7 @@ class HHImporter {
     ui.notifications.info(`Downloading audio: ${item.name}...`);
     const ext = d.audio_format || audioUrl.match(/\.(ogg|wav|webm|mp3)(\?|$)/i)?.[1] || "ogg";
     const localPath = await this.downloadToLocal(
-      audioUrl, soundDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`
+      audioUrl, soundDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`, item.id
     );
     if (!localPath) throw new Error("Failed to download audio file.");
 
@@ -1068,7 +1114,7 @@ class HHImporter {
     const d = item.data || {};
     console.log("HH | Map data keys:", Object.keys(d));
     console.log("HH | Walls:", d.walls?.length || 0, "Lights:", d.lights?.length || 0, "Sounds:", d.sounds?.length || 0);
-    const imageUrl = d.map_image_url || item.image_url || null;
+    const imageUrl = HHApi.resolveImageUrl(d.map_image_url || item.image_url) || null;
     const safeName = item.name.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 50);
     const mapDir = "relics-realms-maps";
     const soundDir = "relics-realms-maps/sounds";
@@ -1079,7 +1125,7 @@ class HHImporter {
       ui.notifications.info("Downloading map image...");
       const ext = imageUrl.match(/\.(png|jpe?g|webp)(\?|$)/i)?.[1] || "png";
       localImagePath = await this.downloadToLocal(
-        imageUrl, mapDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`
+        imageUrl, mapDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`, item.id
       );
       if (!localImagePath) localImagePath = imageUrl; // fallback to URL
     }
@@ -1091,9 +1137,9 @@ class HHImporter {
       ui.notifications.info(`Downloading ${sounds.length} sound file(s)...`);
       for (let i = 0; i < sounds.length; i++) {
         const sound = { ...sounds[i] };
-        // Check both path and audio_url for remote URLs
-        const soundUrl = (sound.audio_url && sound.audio_url.startsWith("http")) ? sound.audio_url
-          : (sound.path && sound.path.startsWith("http")) ? sound.path
+        // Check both path and audio_url for remote/proxy URLs
+        const soundUrl = (sound.audio_url && (sound.audio_url.startsWith("http") || sound.audio_url.startsWith("/"))) ? sound.audio_url
+          : (sound.path && (sound.path.startsWith("http") || sound.path.startsWith("/"))) ? sound.path
           : "";
 
         if (soundUrl) {
@@ -1103,7 +1149,7 @@ class HHImporter {
             ? sound.original_filename.replace(/[^a-zA-Z0-9._-]/g, "_")
             : `${safeName}_sound_${i}.${soundExt}`;
           ui.notifications.info(`Downloading sound ${i + 1}/${sounds.length}: ${soundFileName}`);
-          const localPath = await this.downloadToLocal(soundUrl, soundDir, soundFileName);
+          const localPath = await this.downloadToLocal(soundUrl, soundDir, soundFileName, item.id);
           if (localPath) {
             sound.path = localPath;
             console.log(`HH | Sound ${i}: ${soundUrl} → ${localPath}`);
@@ -1241,7 +1287,7 @@ class HHImporter {
     const base = {
       name: item.name,
       type: this.mapContentType(item.content_type),
-      img: item.image_url || this.getDefaultIcon(item.content_type),
+      img: HHApi.resolveImageUrl(item.image_url) || this.getDefaultIcon(item.content_type),
       system: { description: { value: item.description || "" } },
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
     };
@@ -1560,13 +1606,13 @@ class HHImporter {
     return {
       name: item.name,
       type: "npc",
-      img: item.image_url || "icons/svg/skull.svg",
+      img: HHApi.resolveImageUrl(item.image_url) || "icons/svg/skull.svg",
       prototypeToken: {
         name: item.name,
         displayName: 20,
         actorLink: false,
         texture: {
-          src: d.token_image_url || item.image_url || "icons/svg/skull.svg",
+          src: HHApi.resolveImageUrl(d.token_image_url || item.image_url) || "icons/svg/skull.svg",
           scaleX: 1,
           scaleY: 1,
         },
