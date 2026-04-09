@@ -1421,9 +1421,15 @@ class HHImporter {
   }
 
   static mapSpell(base, d) {
+    // Append class list to description if present
+    const descValue = base.system.description.value || "";
+    const classes = (d.classes || []);
+    const classLine = classes.length > 0 ? `<p><em><strong>Spell Lists:</strong> ${classes.join(", ")}</em></p>` : "";
+    const fullDesc = classLine ? descValue + classLine : descValue;
+
     return foundry.utils.mergeObject(base, {
       system: {
-        description: base.system.description,
+        description: { value: fullDesc },
         level: d.level ?? 1,
         school: (d.school || "evocation").substring(0, 3),
         properties: this.mapSpellComponents(d),
