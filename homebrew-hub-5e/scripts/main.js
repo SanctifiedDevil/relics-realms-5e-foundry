@@ -1421,11 +1421,23 @@ class HHImporter {
   }
 
   static mapSpell(base, d) {
+    // Map class names to dnd5e class identifiers
+    const classMap = {
+      barbarian: "barbarian", bard: "bard", cleric: "cleric", druid: "druid",
+      fighter: "fighter", monk: "monk", paladin: "paladin", ranger: "ranger",
+      rogue: "rogue", sorcerer: "sorcerer", warlock: "warlock", wizard: "wizard",
+    };
+    const sourceClass = (d.classes || [])
+      .map(c => classMap[c.toLowerCase()])
+      .filter(Boolean)
+      .join(", ");
+
     return foundry.utils.mergeObject(base, {
       system: {
         description: base.system.description,
         level: d.level ?? 1,
         school: (d.school || "evocation").substring(0, 3),
+        sourceClass: sourceClass || "",
         properties: this.mapSpellComponents(d),
         materials: { value: d.material_description || "", consumed: false, cost: 0, supply: 0 },
         range: this.parseSpellRange(d.range),
