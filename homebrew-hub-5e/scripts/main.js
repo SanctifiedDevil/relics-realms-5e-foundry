@@ -1324,6 +1324,20 @@ class HHImporter {
         const created = await Actor.createDocuments([actorData], { pack: pack.collection });
         results.compendium = created[0];
       }
+      // Add abilities to compendium actor
+      const compActor = results.compendium;
+      if (compActor) {
+        try {
+          const oldItems = compActor.items.filter(i => i.getFlag(MODULE_ID, "monsterAbility"));
+          if (oldItems.length > 0) {
+            await compActor.deleteEmbeddedDocuments("Item", oldItems.map(i => i.id));
+          }
+          const abilityItems = this.buildMonsterItems(item.data || {});
+          if (abilityItems.length > 0) {
+            await compActor.createEmbeddedDocuments("Item", abilityItems);
+          }
+        } catch (err) { console.warn("HH | Failed to add abilities to compendium actor:", err); }
+      }
     } catch (err) { console.warn("HH | Failed to import monster to compendium:", err); }
 
     if (game.settings.get(MODULE_ID, "importToItems")) {
@@ -1337,6 +1351,22 @@ class HHImporter {
           actor = await Actor.create(actorData);
         }
         results.worldActor = actor;
+
+        // Import monster abilities as embedded items
+        if (actor) {
+          try {
+            // Clear old embedded items from previous imports
+            const oldItems = actor.items.filter(i => i.getFlag(MODULE_ID, "monsterAbility"));
+            if (oldItems.length > 0) {
+              await actor.deleteEmbeddedDocuments("Item", oldItems.map(i => i.id));
+            }
+            const abilityItems = this.buildMonsterItems(item.data || {});
+            if (abilityItems.length > 0) {
+              await actor.createEmbeddedDocuments("Item", abilityItems);
+              console.log(`HH | Created ${abilityItems.length} ability items on ${item.name}`);
+            }
+          } catch (err) { console.warn("HH | Failed to create monster abilities:", err); }
+        }
 
         // Import inventory items onto the actor
         if (actor && inventory.length > 0) {
@@ -1659,6 +1689,117 @@ class HHImporter {
         scaling: { number: 1 },
       }],
     });
+  }
+
+  /** Build embedded Item documents for monster traits, actions, reactions, etc. */
+  static buildMonsterItems(d) {
+    const items = [];
+    const flag = { [MODULE_ID]: { monsterAbility: true } };
+
+    // Helper to detect attack actions and parse them
+    const parseAttack = (desc) => {
+      // Match patterns like "+7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage"
+      const atkMatch = desc.match(/([+-]\d+)\s+to hit.*?(?:reach|range)\s+([\d/]+\s*ft\.)/i);
+      const dmgMatch = desc.match(/Hit:\s*\d+\s*\((\d+d\d+(?:\s*[+-]\s*\d+)?)\)\s*(\w+)\s*damage/i);
+      return { atkMatch, dmgMatch };
+    };
+
+    const buildAbility = (name, desc, activationType, activationCost) => {
+      const item = {
+        name,
+        type: "feat",
+        system: {
+          description: { value: `<p>${desc}</p>` },
+          activation: { type: activationType, cost: activationCost || 1 },
+          sourceItem: "",
+        },
+        flags: flag,
+      };
+
+      // Try to parse as an attack
+      const { atkMatch, dmgMatch } = parseAttack(desc);
+      if (atkMatch) {
+        item.type = "weapon";
+        const isRanged = desc.toLowerCase().includes("ranged") || desc.toLowerCase().includes("range ");
+        item.system.actionType = isRanged ? "rwak" : "mwak";
+        item.system.attackBonus = atkMatch[1];
+        item.system.range = { value: parseInt(atkMatch[2]) || 5, units: "ft" };
+        if (dmgMatch) {
+          const formula = dmgMatch[1].replace(/\s/g, "");
+          item.system.damage = {
+            parts: [[formula, dmgMatch[2].toLowerCase()]],
+          };
+        }
+        item.system.type = { value: "natural" };
+        item.system.proficient = true;
+      }
+      return item;
+    };
+
+    // Traits (passive abilities)
+    if (d.traits?.length) {
+      for (const t of d.traits) {
+        items.push({
+          name: t.name,
+          type: "feat",
+          system: {
+            description: { value: `<p>${t.description}</p>` },
+            activation: { type: "" },
+            type: { value: "monster" },
+            sourceItem: "",
+          },
+          flags: flag,
+        });
+      }
+    }
+
+    // Actions
+    if (d.actions?.length) {
+      for (const a of d.actions) {
+        items.push(buildAbility(a.name, a.description, "action", 1));
+      }
+    }
+
+    // Bonus Actions
+    if (d.bonus_actions?.length) {
+      for (const a of d.bonus_actions) {
+        items.push(buildAbility(a.name, a.description, "bonus", 1));
+      }
+    }
+
+    // Reactions
+    if (d.reactions?.length) {
+      for (const r of d.reactions) {
+        items.push(buildAbility(r.name, r.description, "reaction", 1));
+      }
+    }
+
+    // Legendary Actions
+    if (d.legendary_actions?.length) {
+      for (const la of d.legendary_actions) {
+        const item = buildAbility(la.name, la.description, "legendary", la.cost || 1);
+        items.push(item);
+      }
+    }
+
+    // Lair Actions
+    if (d.lair_actions?.length) {
+      for (const la of d.lair_actions) {
+        items.push({
+          name: la.name || "Lair Action",
+          type: "feat",
+          system: {
+            description: { value: `<p>${la.description}</p>` },
+            activation: { type: "lair", cost: 1 },
+            type: { value: "monster" },
+            sourceItem: "",
+          },
+          flags: flag,
+        });
+      }
+    }
+
+    return items;
   }
 
   static mapMonsterToDnd5e(item) {
