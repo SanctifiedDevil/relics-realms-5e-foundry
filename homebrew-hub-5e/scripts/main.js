@@ -1684,6 +1684,107 @@ class HHImporter {
     const cr = crMap[d.cr] ?? 1;
     const size = sizeMap[d.size?.toLowerCase()] ?? "med";
     const speed = parseInt(d.speed) || 30;
+
+    // Build biography from description + traits, actions, reactions, legendary actions
+    let bio = item.description || "";
+
+    if (d.traits?.length) {
+      bio += "<h3>Traits</h3>";
+      for (const t of d.traits) {
+        bio += `<p><strong><em>${t.name}.</em></strong> ${t.description}</p>`;
+      }
+    }
+    if (d.actions?.length) {
+      bio += "<h3>Actions</h3>";
+      for (const a of d.actions) {
+        bio += `<p><strong><em>${a.name}.</em></strong> ${a.description}</p>`;
+      }
+    }
+    if (d.bonus_actions?.length) {
+      bio += "<h3>Bonus Actions</h3>";
+      for (const a of d.bonus_actions) {
+        bio += `<p><strong><em>${a.name}.</em></strong> ${a.description}</p>`;
+      }
+    }
+    if (d.reactions?.length) {
+      bio += "<h3>Reactions</h3>";
+      for (const r of d.reactions) {
+        bio += `<p><strong><em>${r.name}.</em></strong> ${r.description}</p>`;
+      }
+    }
+    if (d.legendary_actions?.length) {
+      bio += "<h3>Legendary Actions</h3>";
+      if (d.legendary_description) bio += `<p>${d.legendary_description}</p>`;
+      for (const la of d.legendary_actions) {
+        bio += `<p><strong><em>${la.name}${la.cost > 1 ? ` (Costs ${la.cost} Actions)` : ''}.</em></strong> ${la.description}</p>`;
+      }
+    }
+    if (d.lair_actions?.length) {
+      bio += "<h3>Lair Actions</h3>";
+      if (d.lair_actions_description) bio += `<p>${d.lair_actions_description}</p>`;
+      for (const la of d.lair_actions) {
+        bio += `<p>${la.description}</p>`;
+      }
+    }
+    if (d.mythic_actions?.length) {
+      bio += "<h3>Mythic Actions</h3>";
+      for (const ma of d.mythic_actions) {
+        bio += `<p><strong><em>${ma.name}.</em></strong> ${ma.description}</p>`;
+      }
+    }
+
+    // Parse damage/condition traits
+    const parseCsv = (str) => str ? str.split(",").map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+    const di = parseCsv(d.damage_immunities);
+    const dr = parseCsv(d.damage_resistances);
+    const dv = parseCsv(d.damage_vulnerabilities);
+    const ci = parseCsv(d.condition_immunities);
+
+    // Parse saving throw proficiencies
+    const savingThrows = {};
+    if (d.saving_throws) {
+      const stParts = d.saving_throws.split(",").map(s => s.trim());
+      for (const part of stParts) {
+        const match = part.match(/(str|dex|con|int|wis|cha)/i);
+        if (match) savingThrows[match[1].toLowerCase()] = { proficient: 1 };
+      }
+    }
+
+    // Parse skill proficiencies
+    const skills = {};
+    if (d.skills) {
+      const skillMap = {
+        acrobatics: "acr", "animal handling": "ani", arcana: "arc", athletics: "ath",
+        deception: "dec", history: "his", insight: "ins", intimidation: "itm",
+        investigation: "inv", medicine: "med", nature: "nat", perception: "prc",
+        performance: "prf", persuasion: "per", religion: "rel", "sleight of hand": "slt",
+        stealth: "ste", survival: "sur",
+      };
+      const skillParts = d.skills.split(",").map(s => s.trim());
+      for (const part of skillParts) {
+        const match = part.match(/^([a-z\s]+)\s*[+-]\s*(\d+)/i);
+        if (match) {
+          const key = skillMap[match[1].trim().toLowerCase()];
+          if (key) skills[key] = { value: 1 };
+        }
+      }
+    }
+
+    // Parse speed components
+    const movement = { walk: speed, units: "ft" };
+    if (d.speed) {
+      const speedStr = d.speed.toString();
+      const flyMatch = speedStr.match(/fly\s+(\d+)/i);
+      const swimMatch = speedStr.match(/swim\s+(\d+)/i);
+      const burrowMatch = speedStr.match(/burrow\s+(\d+)/i);
+      const climbMatch = speedStr.match(/climb\s+(\d+)/i);
+      if (flyMatch) movement.fly = parseInt(flyMatch[1]);
+      if (swimMatch) movement.swim = parseInt(swimMatch[1]);
+      if (burrowMatch) movement.burrow = parseInt(burrowMatch[1]);
+      if (climbMatch) movement.climb = parseInt(climbMatch[1]);
+      if (speedStr.toLowerCase().includes("hover")) movement.hover = true;
+    }
+
     return {
       name: item.name,
       type: "npc",
@@ -1697,33 +1798,68 @@ class HHImporter {
           scaleX: 1,
           scaleY: 1,
         },
-        width: 1,
-        height: 1,
+        width: size === "lg" ? 2 : size === "huge" ? 3 : size === "grg" ? 4 : 1,
+        height: size === "lg" ? 2 : size === "huge" ? 3 : size === "grg" ? 4 : 1,
         disposition: -1,
         displayBars: 20,
         bar1: { attribute: "attributes.hp" },
       },
       system: {
         abilities: {
-          str: { value: d.str || 10 }, dex: { value: d.dex || 10 },
-          con: { value: d.con || 10 }, int: { value: d.int || 10 },
-          wis: { value: d.wis || 10 }, cha: { value: d.cha || 10 },
+          str: { value: d.str || 10, proficient: savingThrows.str ? 1 : 0 },
+          dex: { value: d.dex || 10, proficient: savingThrows.dex ? 1 : 0 },
+          con: { value: d.con || 10, proficient: savingThrows.con ? 1 : 0 },
+          int: { value: d.int || 10, proficient: savingThrows.int ? 1 : 0 },
+          wis: { value: d.wis || 10, proficient: savingThrows.wis ? 1 : 0 },
+          cha: { value: d.cha || 10, proficient: savingThrows.cha ? 1 : 0 },
         },
         attributes: {
           ac: { calc: d.ac ? "flat" : "default", flat: d.ac || null },
           hp: { value: d.hp || 10, max: d.hp || 10, formula: d.hp_formula || "" },
-          movement: { walk: speed, units: "ft" },
+          movement,
         },
         details: {
-          biography: { value: item.description || "" },
+          biography: { value: bio },
           type: { value: d.monster_type || "humanoid", custom: "" },
           alignment: d.alignment || "",
           cr: cr,
           xp: { value: xpMap[cr] ?? 200 },
+          source: { custom: "Relics & Realms" },
         },
-        traits: { size: size },
+        traits: {
+          size: size,
+          di: { value: di },
+          dr: { value: dr },
+          dv: { value: dv },
+          ci: { value: ci },
+          languages: { value: d.languages ? d.languages.split(",").map(s => s.trim().toLowerCase()) : [] },
+        },
+        skills,
+        attributes: {
+          ac: { calc: d.ac ? "flat" : "default", flat: d.ac || null },
+          hp: { value: d.hp || 10, max: d.hp || 10, formula: d.hp_formula || "" },
+          movement,
+          senses: this.parseSenses(d.senses),
+        },
       },
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
     };
+  }
+
+  static parseSenses(sensesStr) {
+    if (!sensesStr) return {};
+    const senses = {};
+    const darkMatch = sensesStr.match(/darkvision\s+(\d+)/i);
+    const blindMatch = sensesStr.match(/blindsight\s+(\d+)/i);
+    const trueMatch = sensesStr.match(/truesight\s+(\d+)/i);
+    const tremMatch = sensesStr.match(/tremorsense\s+(\d+)/i);
+    const passiveMatch = sensesStr.match(/passive\s+perception\s+(\d+)/i);
+    if (darkMatch) senses.darkvision = parseInt(darkMatch[1]);
+    if (blindMatch) senses.blindsight = parseInt(blindMatch[1]);
+    if (trueMatch) senses.truesight = parseInt(trueMatch[1]);
+    if (tremMatch) senses.tremorsense = parseInt(tremMatch[1]);
+    if (passiveMatch) senses.passivePerception = parseInt(passiveMatch[1]);
+    senses.units = "ft";
+    return senses;
   }
 }
