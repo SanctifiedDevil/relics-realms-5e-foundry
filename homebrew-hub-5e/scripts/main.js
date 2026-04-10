@@ -970,6 +970,14 @@ class HHImporter {
     return results;
   }
 
+  /** Resolve all relative image/link URLs in HTML content to absolute API URLs */
+  static resolveContentUrls(html) {
+    if (!html) return html;
+    const baseUrl = HHApi.getBaseUrl();
+    // Replace src="/api/... and href="/api/... with absolute URLs
+    return html.replace(/(src|href)="(\/api\/[^"]+)"/g, `$1="${baseUrl}$2"`);
+  }
+
   static async importJournal(item) {
     const d = item.data || {};
     const pages = d.pages || [{ title: item.name, content: item.description || "", sort_order: 0 }];
@@ -983,7 +991,7 @@ class HHImporter {
         type: "text",
         sort_order: (page.sort_order || idx) * 100000,
         text: {
-          content: page.content || "",
+          content: this.resolveContentUrls(page.content || ""),
           format: 1,
         },
       })),
