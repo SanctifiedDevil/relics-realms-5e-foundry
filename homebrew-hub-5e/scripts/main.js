@@ -1193,6 +1193,7 @@ class HHImporter {
           alpha: d.grid_opacity ?? 0.2,
         },
         environment: {
+          base: { color: d.background_color || "#000000" },
           globalLight: { enabled: d.has_global_illumination ?? false },
           darknessLevel: d.darkness_level ?? 0,
         },
