@@ -1131,7 +1131,7 @@ class HHImporter {
     let localImagePath = null;
     if (imageUrl) {
       ui.notifications.info("Downloading map image...");
-      const ext = imageUrl.match(/\.(png|jpe?g|webp)(\?|$)/i)?.[1] || "png";
+      const ext = imageUrl.match(/\.(png|jpe?g|webp|avif|svg|gif|bmp|webm|mp4)(\?|$)/i)?.[1] || "png";
       localImagePath = await this.downloadToLocal(
         imageUrl, mapDir, `${safeName}_${item.id.substring(0, 8)}.${ext}`, item.id
       );
