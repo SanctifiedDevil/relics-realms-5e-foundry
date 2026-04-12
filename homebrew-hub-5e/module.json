@@ -26,6 +26,6 @@
     }
   ],
   "url": "https://github.com/SanctifiedDevil/relics-realms-5e-foundry",
-  "manifest": "https://raw.githubusercontent.com/SanctifiedDevil/relics-realms-5e-foundry/main/homebrew-hub-5e/module.json",
-  "download": "https://github.com/SanctifiedDevil/relics-realms-5e-foundry/archive/refs/heads/main.zip"
+  "manifest": "https://github.com/SanctifiedDevil/relics-realms-5e-foundry/releases/latest/download/module.json",
+  "download": "https://github.com/SanctifiedDevil/relics-realms-5e-foundry/releases/download/v0.3.5/module.zip"
 }
