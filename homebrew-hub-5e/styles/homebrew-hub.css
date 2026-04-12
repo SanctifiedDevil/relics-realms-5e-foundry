@@ -545,6 +545,13 @@
   line-height: 1;
 }
 
+.rrb-cat-icon img,
+.rrb-item-img,
+.rrb-preview-img,
+.rrb-browser img {
+  border: none !important;
+}
+
 .rrb-cat-name {
   font-family: 'Uncial Antiqua', serif;
   font-size: 0.75rem;
