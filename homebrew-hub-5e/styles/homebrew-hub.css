@@ -46,6 +46,7 @@
 #homebrew-hub-browser .window-content {
   background: var(--rrb-bg-base) !important;
   padding: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Login window */
