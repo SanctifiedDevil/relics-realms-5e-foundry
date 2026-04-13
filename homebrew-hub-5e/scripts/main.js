@@ -41,6 +41,25 @@ class HHApi {
     return url;
   }
 
+  /**
+   * Pick the unwatermarked full image for importing. The API surfaces
+   * data.full_image_url only to authorized buyers/owners; non-buyers get
+   * data stripped, so this falls back to image_url (the watermarked
+   * preview) in that case.
+   */
+  static fullImageFor(item) {
+    const full = item && item.data && item.data.full_image_url;
+    return this.resolveImageUrl(full || (item && item.image_url) || "");
+  }
+
+  /** Same idea, for monster token images. */
+  static fullTokenFor(item) {
+    const d = (item && item.data) || {};
+    return this.resolveImageUrl(
+      d.token_full_image_url || d.token_image_url || (item && item.image_url) || ""
+    );
+  }
+
   static async request(path, options = {}) {
     const url = `${this.getBaseUrl()}${path}`;
     const token = this.getToken();
@@ -984,7 +1003,7 @@ class HHImporter {
 
     const journalData = {
       name: item.name,
-      img: HHApi.resolveImageUrl(item.image_url) || null,
+      img: HHApi.fullImageFor(item) || null,
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
       pages: pages.map((page, idx) => ({
         name: page.title || "Page " + (idx + 1),
@@ -1393,7 +1412,7 @@ class HHImporter {
     const base = {
       name: item.name,
       type: this.mapContentType(item.content_type),
-      img: HHApi.resolveImageUrl(item.image_url) || this.getDefaultIcon(item.content_type),
+      img: HHApi.fullImageFor(item) || this.getDefaultIcon(item.content_type),
       system: { description: { value: item.description || "" }, sourceItem: "" },
       flags: { [MODULE_ID]: { sourceId: item.id, version: item.version } },
     };
@@ -1930,13 +1949,13 @@ class HHImporter {
     return {
       name: item.name,
       type: "npc",
-      img: HHApi.resolveImageUrl(item.image_url) || "icons/svg/skull.svg",
+      img: HHApi.fullImageFor(item) || "icons/svg/skull.svg",
       prototypeToken: {
         name: item.name,
         displayName: 20,
         actorLink: false,
         texture: {
-          src: HHApi.resolveImageUrl(d.token_image_url || item.image_url) || "icons/svg/skull.svg",
+          src: HHApi.fullTokenFor(item) || "icons/svg/skull.svg",
           scaleX: 1,
           scaleY: 1,
         },
